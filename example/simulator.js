@@ -1,15 +1,15 @@
-var ZwackBLE = require('../lib/zwack-ble-sensor');
-const readline = require('readline');
-const parseArgs = require('minimist');
+import ZwackBLE from '../lib/zwack-ble-sensor.js';
+import readline from 'readline';
+import minimist from 'minimist';
 
-const args = parseArgs(process.argv.slice(2));
+const args = minimist(process.argv.slice(2));
 
-var containsFTMS = false;
-var containsRSC = false;
-var containsCSP = false;
-var containsSPD = false;
-var containsPWR = false;
-var containsCAD = false;
+let containsFTMS = false;
+let containsRSC = false;
+let containsCSP = false;
+let containsSPD = false;
+let containsPWR = false;
+let containsCAD = false;
 
 if ( args.variable === undefined ) {
   console.error("Error: variable parameter is required eg: npm run simulator -- --variable=ftms");
@@ -21,33 +21,33 @@ if ( args.variable === undefined ) {
   containsSPD  = args.variable.includes('speed');
   containsPWR  = args.variable.includes('power');
   containsCAD  = args.variable.includes('cadence');
-} 
+}
 
 // default parameters
-var cadence = 90;
-var power = 100;
-var powerMeterSpeed = 18;  // kmh
-var powerMeterSpeedUnit = 2048;	 // Last Event time expressed in Unit of 1/2048 second
-var runningCadence = 180;
-var runningSpeed = 10;  // 6:00 minute mile
-var randomness = 5;
-var sensorName = 'Zwack';
+let cadence = 90;
+let power = 100;
+let powerMeterSpeed = 18;  // kmh
+const powerMeterSpeedUnit = 2048;	 // Last Event time expressed in Unit of 1/2048 second
+let runningCadence = 180;
+let runningSpeed = 10;  // 6:00 minute mile
+let randomness = 5;
+const sensorName = 'Zwack';
 
-var incr = 10;
-var runningIncr = 0.5;
-var stroke_count = 0;
-var wheel_count = 0;
-var wheel_circumference = 2096 // milimeter
-var notificationInterval = 1000;
-var watts = power;
+let incr = 10;
+const runningIncr = 0.5;
+let stroke_count = 0;
+let wheel_count = 0;
+const wheel_circumference = 2096 // milimeter
+const notificationInterval = 1000;
+let watts = power;
 
-var prevCadTime = 0;
-var prevCadInt = 0;
+let prevCadTime = 0;
+let prevCadInt = 0;
 
 readline.emitKeypressEvents(process.stdin);
 process.stdin.setRawMode(true);
 
-var zwackBLE = new ZwackBLE({ 
+const zwackBLE = new ZwackBLE({
   name: sensorName,
   modelNumber: 'ZW-101',
   serialNumber: '1'
@@ -59,6 +59,7 @@ process.stdin.on('keypress', (str, key) => {
   } else if (key.name === 'l') {
     listKeys();
   } else {
+    let factor, runFactor;
     if( key.shift ) {
       factor = incr;
       runFactor = runningIncr;
@@ -102,7 +103,7 @@ process.stdin.on('keypress', (str, key) => {
         powerMeterSpeed += runFactor;
         if( powerMeterSpeed < 0 ) {
           powerMeterSpeed = 0;
-        }        
+        }
 	break;
       case 'd':
         runningCadence += runFactor;
@@ -123,29 +124,8 @@ process.stdin.on('keypress', (str, key) => {
   }
 });
 
-// Simulate Cycling Power - Broadcasting Power & Cadence
-// var notifyPowerCPC = function() {
-//   watts = Math.floor(Math.random() * randomness + power);
-//   
-//   stroke_count += 1;
-//   if( cadence <= 0) {
-//     cadence = 0;
-//     setTimeout(notifyPowerCPC, notificationInterval);
-//     return;
-//   }
-// 
-//   try {
-//     zwackBLE.notifyCSP({'watts': watts, 'rev_count': stroke_count });
-//   }
-//   catch( e ) {
-//     console.error(e);
-//   }
-//   
-//   setTimeout(notifyPowerCPC, notificationInterval);
-// };
-
 // Simulate Cycling Power - Broadcasting Power ONLY
-var notifyPowerCSP = function() {
+const notifyPowerCSP = function() {
   watts = Math.floor(Math.random() * randomness + power);
 
   try {
@@ -154,12 +134,12 @@ var notifyPowerCSP = function() {
   catch( e ) {
     console.error(e);
   }
-  
+
   setTimeout(notifyPowerCSP, notificationInterval);
 };
 
 // Simulate FTMS Smart Trainer - Broadcasting Power and Cadence
-var notifyPowerFTMS = function() {
+const notifyPowerFTMS = function() {
   watts = Math.floor(Math.random() * randomness + power);
   cadence = Math.floor(Math.random() + cadence)
 
@@ -169,12 +149,12 @@ var notifyPowerFTMS = function() {
   catch( e ) {
     console.error(e);
   }
-  
+
   setTimeout(notifyPowerFTMS, notificationInterval);
 };
 
 // Simulate Cycling Power - Broadcasting Power and Cadence
-var notifyCadenceCSP = function() {
+const notifyCadenceCSP = function() {
   stroke_count += 1;
   if( cadence <= 0) {
     cadence = 0;
@@ -187,52 +167,51 @@ var notifyCadenceCSP = function() {
   catch( e ) {
     console.error(e);
   }
-  
+
   setTimeout(notifyCadenceCSP, 60 * 1000/(Math.random() * randomness + cadence));
 };
 
 
 // Simulate Cycling Power - Broadcasting Power and Cadence & Speed
-// This setup is NOT ideal. Cadence and Speed changes will be erratic 
+// This setup is NOT ideal. Cadence and Speed changes will be erratic
 //   - takes ~2 sec to stabilize and be reflected in output
 //   - will be unable to inject randomness into the output
 //   - will need help on how to improve it
-var notifyCPCS = function() {
+const notifyCPCS = function() {
   // https://www.hackster.io/neal_markham/ble-bicycle-speed-sensor-f60b80
-  var spd_int = Math.round((wheel_circumference * powerMeterSpeedUnit * 60 * 60) / (1000 * 1000 * powerMeterSpeed));
+  const spd_int = Math.round((wheel_circumference * powerMeterSpeedUnit * 60 * 60) / (1000 * 1000 * powerMeterSpeed));
   watts = Math.floor(Math.random() * randomness + power);
 
-//   var cad_int = Math.round(60 * 1024/(Math.random() * randomness + cadence));
-  var cad_int = Math.round(60 * 1024/( cadence));
-  var now = Date.now();
-  var cad_time = 0;
+  const cad_int = Math.round(60 * 1024/( cadence));
+  const now = Date.now();
+  let cad_time = 0;
 
 
   wheel_count += 1;
   if ( powerMeterSpeed <= 0 ) {
   	powerMeterSpeed = 0;
     setTimeout(notifyCPCS, notificationInterval);
-    return;  	
+    return;
   }
 
- 
+
   if ( cad_int != prevCadInt ) {
     cad_time = (stroke_count * cad_int) % 65536;
-    var deltaCadTime = cad_time - prevCadTime;
-    var ratioCadTime = deltaCadTime / cad_int
+    const deltaCadTime = cad_time - prevCadTime;
+    const ratioCadTime = deltaCadTime / cad_int
 	  if ( ratioCadTime > 1 )  {
 		stroke_count = stroke_count + Math.round(ratioCadTime);
 		cad_time = (cad_time + cad_int) % 65536;
 		prevCadTime = cad_time;
-	  } 
+	  }
   } else {
     stroke_count += 1;
     cad_time = (stroke_count * cad_int) % 65536;
   }
-    
+
   prevCadTime = cad_time;
   prevCadInt = cad_int;
-  
+
   if( cadence <= 0) {
     cadence = 0;
     setTimeout(notifyCPCS, notificationInterval);
@@ -245,13 +224,12 @@ var notifyCPCS = function() {
   catch( e ) {
     console.error(e);
   }
-  
+
   setTimeout(notifyCPCS, notificationInterval);
-//   setTimeout(notifyCPCS, spd_int);
 };
 
 // Simulate Running Speed and Cadence - Broadcasting Speed and Cadence
-var notifyRSC = function() {
+const notifyRSC = function() {
   try {
     zwackBLE.notifyRSC({
       'speed': toMs(Math.random() + runningSpeed),
@@ -261,7 +239,7 @@ var notifyRSC = function() {
   catch( e ) {
     console.error(e);
   }
-  
+
   setTimeout(notifyRSC, notificationInterval);
 };
 
@@ -300,18 +278,14 @@ function speedToPace(speed) {
   if( speed === 0 ) {
     return '00:00';
   }
-  let t = 60 / speed;
-  let minutes = Math.floor(t);
-  let seconds = Math.floor((t - minutes) * 60);
+  const t = 60 / speed;
+  const minutes = Math.floor(t);
+  const seconds = Math.floor((t - minutes) * 60);
   return minutes.toString().padStart(2,'0') + ':' + seconds.toString().padStart(2,'0');
 }
 
 function toMs(speed) {
   return (speed * 1.60934) / 3.6;
-}
-
-function kmhToMs(speed) {
-  return speed/3.6
 }
 
 // Main
