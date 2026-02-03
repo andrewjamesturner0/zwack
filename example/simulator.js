@@ -44,6 +44,17 @@ let watts = power;
 let prevCadTime = 0;
 let prevCadInt = 0;
 
+/**
+ * Generate a random value from a Gaussian (normal) distribution
+ * using the Box-Muller transform.
+ */
+function gaussianRandom(mean, stdDev) {
+  const u1 = Math.random();
+  const u2 = Math.random();
+  const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  return mean + z0 * stdDev;
+}
+
 readline.emitKeypressEvents(process.stdin);
 process.stdin.setRawMode(true);
 
@@ -126,7 +137,7 @@ process.stdin.on('keypress', (str, key) => {
 
 // Simulate Cycling Power - Broadcasting Power ONLY
 const notifyPowerCSP = function() {
-  watts = Math.floor(Math.random() * randomness + power);
+  watts = Math.max(0, Math.floor(gaussianRandom(power, randomness)));
 
   try {
     zwackBLE.notifyCSP({'watts': watts});
@@ -140,11 +151,11 @@ const notifyPowerCSP = function() {
 
 // Simulate FTMS Smart Trainer - Broadcasting Power and Cadence
 const notifyPowerFTMS = function() {
-  watts = Math.floor(Math.random() * randomness + power);
-  cadence = Math.floor(Math.random() + cadence)
+  watts = Math.max(0, Math.floor(gaussianRandom(power, randomness)));
+  const cadenceWithNoise = Math.max(0, Math.floor(gaussianRandom(cadence, randomness)));
 
   try {
-    zwackBLE.notifyFTMS({'watts': watts, 'cadence': cadence});
+    zwackBLE.notifyFTMS({'watts': watts, 'cadence': cadenceWithNoise});
   }
   catch( e ) {
     console.error(e);
@@ -168,7 +179,7 @@ const notifyCadenceCSP = function() {
     console.error(e);
   }
 
-  setTimeout(notifyCadenceCSP, 60 * 1000/(Math.random() * randomness + cadence));
+  setTimeout(notifyCadenceCSP, 60 * 1000 / Math.max(1, gaussianRandom(cadence, randomness)));
 };
 
 
@@ -180,7 +191,7 @@ const notifyCadenceCSP = function() {
 const notifyCPCS = function() {
   // https://www.hackster.io/neal_markham/ble-bicycle-speed-sensor-f60b80
   const spd_int = Math.round((wheel_circumference * powerMeterSpeedUnit * 60 * 60) / (1000 * 1000 * powerMeterSpeed));
-  watts = Math.floor(Math.random() * randomness + power);
+  watts = Math.max(0, Math.floor(gaussianRandom(power, randomness)));
 
   const cad_int = Math.round(60 * 1024/( cadence));
   const now = Date.now();
@@ -232,8 +243,8 @@ const notifyCPCS = function() {
 const notifyRSC = function() {
   try {
     zwackBLE.notifyRSC({
-      'speed': toMs(Math.random() + runningSpeed),
-      'cadence': Math.floor(Math.random() * 2 + runningCadence)
+      'speed': toMs(Math.max(0, gaussianRandom(runningSpeed, randomness / 5))),
+      'cadence': Math.max(0, Math.floor(gaussianRandom(runningCadence, randomness / 2)))
     });
   }
   catch( e ) {
