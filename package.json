@@ -41,7 +41,7 @@
   },
   "homepage": "https://github.com/paixaop/zwack",
   "dependencies": {
-    "bleno": "npm:@abandonware/bleno@^0.5.1-4",
+    "bleno": "npm:@stoprocent/bleno@^0.7.1",
     "minimist": "^1.2.8"
   }
 }

@@ -100,9 +100,30 @@ Requires NodeJS, and should run in all Bleno (the base BLE module) supported pla
 
 Zwack cannot run on the same computer as the fitness or virtual indoor bike app, you'll need to run them on different systems.
 
-If you have trouble getting BLE to work on MacOS, you can try to install bleno from [abandonware](https://github.com/abandonware/bleno) using the command
+If you have trouble getting BLE to work on MacOS, you can try to install bleno from [@stoprocent/bleno](https://github.com/stoprocent/bleno) using the command
 
-	npm install bleno@npm:@abandonware/bleno
+	npm install bleno@npm:@stoprocent/bleno
+
+## Arch Linux
+
+Install required packages:
+
+```bash
+pacman -S bluez bluez-libs bluez-utils nodejs npm base-devel python
+```
+
+Enable and start the bluetooth service:
+
+```bash
+systemctl enable bluetooth
+systemctl start bluetooth
+```
+
+You may need to run as root or grant BLE capabilities to the node binary:
+
+```bash
+sudo setcap cap_net_raw+eip $(eval readlink -f $(which node))
+```
 
 ## Help Needed
 
