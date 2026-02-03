@@ -30,7 +30,9 @@ let powerMeterSpeed = 18;  // kmh
 const powerMeterSpeedUnit = 2048;	 // Last Event time expressed in Unit of 1/2048 second
 let runningCadence = 180;
 let runningSpeed = 10;  // 6:00 minute mile
-let randomness = 5;
+let noiseEnabled = true;
+const POWER_NOISE_PERCENT = 0.10;    // ±10% max variation
+const CADENCE_NOISE_PERCENT = 0.04;  // ±4% max variation
 const sensorName = 'Zwack';
 
 let incr = 10;
@@ -100,10 +102,7 @@ process.stdin.on('keypress', (str, key) => {
         }
 	break;
       case 'r':
-        randomness += factor;
-        if( randomness < 0 ) {
-          randomness = 0;
-        }
+        noiseEnabled = !noiseEnabled;
 	break;
       case 's':
         runningSpeed += runFactor;
@@ -137,7 +136,7 @@ process.stdin.on('keypress', (str, key) => {
 
 // Simulate Cycling Power - Broadcasting Power ONLY
 const notifyPowerCSP = function() {
-  watts = Math.max(0, Math.floor(gaussianRandom(power, randomness)));
+  watts = noiseEnabled ? Math.max(0, Math.floor(gaussianRandom(power, power * POWER_NOISE_PERCENT / 3))) : power;
 
   try {
     zwackBLE.notifyCSP({'watts': watts});
@@ -151,8 +150,8 @@ const notifyPowerCSP = function() {
 
 // Simulate FTMS Smart Trainer - Broadcasting Power and Cadence
 const notifyPowerFTMS = function() {
-  watts = Math.max(0, Math.floor(gaussianRandom(power, randomness)));
-  const cadenceWithNoise = Math.max(0, Math.floor(gaussianRandom(cadence, randomness)));
+  watts = noiseEnabled ? Math.max(0, Math.floor(gaussianRandom(power, power * POWER_NOISE_PERCENT / 3))) : power;
+  const cadenceWithNoise = noiseEnabled ? Math.max(0, Math.floor(gaussianRandom(cadence, cadence * CADENCE_NOISE_PERCENT / 3))) : cadence;
 
   try {
     zwackBLE.notifyFTMS({'watts': watts, 'cadence': cadenceWithNoise});
@@ -179,19 +178,18 @@ const notifyCadenceCSP = function() {
     console.error(e);
   }
 
-  setTimeout(notifyCadenceCSP, 60 * 1000 / Math.max(1, gaussianRandom(cadence, randomness)));
+  const cadenceForInterval = noiseEnabled ? Math.max(1, gaussianRandom(cadence, cadence * CADENCE_NOISE_PERCENT / 3)) : cadence;
+  setTimeout(notifyCadenceCSP, 60 * 1000 / Math.max(1, cadenceForInterval));
 };
 
 
 // Simulate Cycling Power - Broadcasting Power and Cadence & Speed
 // This setup is NOT ideal. Cadence and Speed changes will be erratic
 //   - takes ~2 sec to stabilize and be reflected in output
-//   - will be unable to inject randomness into the output
-//   - will need help on how to improve it
 const notifyCPCS = function() {
   // https://www.hackster.io/neal_markham/ble-bicycle-speed-sensor-f60b80
   const spd_int = Math.round((wheel_circumference * powerMeterSpeedUnit * 60 * 60) / (1000 * 1000 * powerMeterSpeed));
-  watts = Math.max(0, Math.floor(gaussianRandom(power, randomness)));
+  watts = noiseEnabled ? Math.max(0, Math.floor(gaussianRandom(power, power * POWER_NOISE_PERCENT / 3))) : power;
 
   const cad_int = Math.round(60 * 1024/( cadence));
   const now = Date.now();
@@ -243,8 +241,8 @@ const notifyCPCS = function() {
 const notifyRSC = function() {
   try {
     zwackBLE.notifyRSC({
-      'speed': toMs(Math.max(0, gaussianRandom(runningSpeed, randomness / 5))),
-      'cadence': Math.max(0, Math.floor(gaussianRandom(runningCadence, randomness / 2)))
+      'speed': noiseEnabled ? toMs(Math.max(0, gaussianRandom(runningSpeed, runningSpeed * CADENCE_NOISE_PERCENT / 3))) : toMs(runningSpeed),
+      'cadence': noiseEnabled ? Math.min(255, Math.max(0, Math.floor(gaussianRandom(runningCadence, runningCadence * CADENCE_NOISE_PERCENT / 3)))) : runningCadence
     });
   }
   catch( e ) {
@@ -266,7 +264,7 @@ function listParams() {
   console.log(`    Speed: ${runningSpeed} m/h, Pace: ${speedToPace(runningSpeed)} min/mi`);
   console.log(`    Cadence: ${Math.floor(runningCadence)} steps/min`);
 
-  console.log(`\nRandomness: ${randomness}`);
+  console.log(`\nNoise: ${noiseEnabled ? 'ON' : 'OFF'}`);
   console.log(`Increment: ${incr}`);
   console.log('\n');
 }
@@ -279,7 +277,7 @@ function listKeys() {
   console.log('s/S - Decrease/Increase running speed');
   console.log('d/D - Decrease/Increase running cadence');
 
-  console.log('\nr/R - Decrease/Increase parameter variability');
+  console.log('\nr - Toggle sensor noise on/off');
   console.log('i/I - Decrease/Increase parameter increment');
   console.log('x/q - Exit');
   console.log();
