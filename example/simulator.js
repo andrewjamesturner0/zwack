@@ -31,7 +31,7 @@ const powerMeterSpeedUnit = 2048;	 // Last Event time expressed in Unit of 1/204
 let runningCadence = 180;
 let runningSpeed = 10;  // 6:00 minute mile
 let noiseEnabled = true;
-const POWER_NOISE_PERCENT = 0.10;    // ±10% max variation
+const POWER_NOISE_PERCENT = 0.20;    // ±20% max variation
 const CADENCE_NOISE_PERCENT = 0.04;  // ±4% max variation
 const sensorName = 'Zwack';
 
